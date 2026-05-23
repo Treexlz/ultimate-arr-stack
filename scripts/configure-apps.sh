@@ -125,6 +125,17 @@ if [[ -n "$MISSING" ]]; then
     exit 1
 fi
 
+# Gluetun must be healthy — qBittorrent and the *arr services share its network
+# namespace, so if the VPN isn't up, they won't respond on any port. Checking here
+# turns a 4-minute mysterious hang into a clear error.
+GLUETUN_HEALTH=$(docker inspect -f '{{.State.Health.Status}}' gluetun 2>/dev/null || echo unknown)
+if [[ "$GLUETUN_HEALTH" != "healthy" ]]; then
+    echo "ERROR: Gluetun is '$GLUETUN_HEALTH' (need 'healthy')."
+    echo "       qBit and the *arr services share Gluetun's network — they can't respond until the VPN is up."
+    echo "       Wait for it to connect, then re-run. Diagnose: docker logs gluetun --tail 50"
+    exit 1
+fi
+
 # Check if SABnzbd is running (optional)
 SABNZBD_RUNNING=false
 if docker ps --format '{{.Names}}' | grep -q "^sabnzbd$"; then

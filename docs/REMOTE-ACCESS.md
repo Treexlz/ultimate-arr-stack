@@ -16,13 +16,12 @@ Cloudflare Tunnel lets you access services from outside your home without openin
 
 ```bash
 cd $NAS_STACK_DIR
-mkdir -p cloudflared && chmod 777 cloudflared
+mkdir -p cloudflared
+sudo chown -R 65532:65532 cloudflared/   # NAS ACLs override POSIX perms; 65532 is cloudflared's nonroot UID inside the container
 docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflared tunnel login
 ```
 
-> **Troubleshooting:** If cloudflared crashes with `permission denied` on config.yml, NAS ACLs may be overriding POSIX permissions. Fix with: `sudo chown -R 65532:65532 cloudflared/` (65532 is the `nonroot` UID inside the container).
-
-This prints a URL. Open it in your browser, select your domain, and authorize. The running cloudflared process receives the cert via callback and saves it automatically (the browser shouldn't offer any download).
+This prints a URL. Open it in your browser, select your domain, and authorize. **Leave the container running** until you've clicked authorize — the cert is delivered to it via callback and saved into `cloudflared/cert.pem`. If you Ctrl+C before authorizing, no cert is written and step 2 will fail with `No file cert.pem in [...]`.
 
 **2. Create the tunnel:**
 

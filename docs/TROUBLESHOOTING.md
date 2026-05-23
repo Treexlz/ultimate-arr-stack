@@ -126,6 +126,30 @@ docker exec pihole pihole -g   # confirm both lists succeed
 
 Current Pi-hole versions chown files back to `pihole` after each gravity run, so once corrected this shouldn't recur.
 
+## Seerr: "/app/config volume mount was not configured properly"
+
+**Symptom:** Seerr container starts but logs `The /app/config volume mount was not configured properly` (or similar) and the web UI is unreachable.
+
+**Cause:** Seerr does a strict check on `/app/config` at startup and is fussier than Jellyseerr was. Usually triggered by a half-initialised `seerr-config` volume from an interrupted earlier start — failed `up -d`, container OOM, Ctrl+C mid-init, etc.
+
+**Diagnose:**
+```bash
+docker logs seerr --tail 30
+```
+
+**Fix:** Wipe and re-init the volume.
+
+```bash
+docker compose -f docker-compose.arr-stack.yml stop seerr
+docker volume rm arr-stack_seerr-config
+docker compose -f docker-compose.arr-stack.yml up -d seerr
+docker logs seerr --tail 30
+```
+
+> **⚠️ Destructive.** Safe on a fresh install before you've configured Seerr. Once you've added Sonarr/Radarr connections, users, or requests, this wipes them — back up `/var/lib/docker/volumes/arr-stack_seerr-config/_data/` first if you need to preserve state.
+
+If a fresh wipe still hits the same error, post `docker logs seerr` output as a GitHub issue.
+
 ## Jellyfin: Video Stutters/Freezes Every Few Minutes
 
 **Symptom:** Playing large video files (especially 4K remuxes, 50-100+ GB) causes playback to freeze for a few seconds every 2-3 minutes, then resume. Happens on both Jellyfin apps and Kodi with Jellyfin plugin. Jellyfin dashboard may show "Direct Play" (no transcoding).
