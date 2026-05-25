@@ -32,7 +32,9 @@ docker logs tailscale 2>&1 | grep -A1 "To authenticate"
 
 You should see a line like `https://login.tailscale.com/a/abc123...`. Open it in your browser, sign into the same account from step 1, and approve the device.
 
-> **Why interactive?** The compose file leaves `TS_AUTHKEY` unset for first-run auth. For automated re-auth (e.g. after a long outage), generate an [auth key](https://login.tailscale.com/admin/settings/keys), put it in `.env` as `TS_AUTHKEY=tskey-auth-…`, and `docker compose up -d` again.
+> **Be quick (~70 seconds).** The container regenerates the URL roughly every minute while waiting for auth. If you've already signed into Tailscale in another tab and the *Add Device* button is one click away, you'll comfortably make it. If you stall, re-run the `docker logs` command to grab the fresh URL.
+
+> **Alternative — pre-auth key.** If interactive keeps timing out (e.g. you're setting up an account from scratch and the GitHub OAuth flow takes a while), generate an [auth key](https://login.tailscale.com/admin/settings/keys), add `TS_AUTHKEY=tskey-auth-…` to `.env`, and `docker compose -f docker-compose.tailscale.yml up -d --force-recreate`. The container auto-registers — no clicking. Remove the key from `.env` after (it's single-use).
 
 ## 3. Configure the tailnet (Tailscale admin console)
 

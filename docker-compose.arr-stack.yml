@@ -326,7 +326,7 @@ services:
   # Protocols: DoH (DNS over HTTPS), DNSCrypt, Anonymized DNS
   # ═══════════════════════════════════════════════════════════════════════════
   dnscrypt-proxy:
-    image: klutchell/dnscrypt-proxy:2.1.14
+    image: klutchell/dnscrypt-proxy:2.1.16
     container_name: dnscrypt-proxy
     cap_drop:
       - ALL

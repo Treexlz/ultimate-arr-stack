@@ -2,7 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.7.15] - 2026-05-24
+## [1.7.15] - 2026-05-25
+
+### Changed
+- **dnscrypt-proxy** 2.1.14 → 2.1.16
 
 ### Added
 - **Tailscale subnet router** (optional): new `docker-compose.tailscale.yml` and [docs/TAILSCALE.md](docs/TAILSCALE.md) for reaching the whole LAN (Pi-hole, `*.lan` domains, admin UIs, Home Assistant) from anywhere — including hotel WiFi and CGNAT networks where IPv4 inbound is unavailable. Pinned to `tailscale/tailscale:v1.98.3`, runs as a host-network container with `NET_ADMIN`, advertises `LAN_SUBNET` from `.env`. Complementary to Cloudflared, not a replacement
