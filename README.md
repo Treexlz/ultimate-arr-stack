@@ -15,7 +15,7 @@ Works on Ugreen, Synology, QNAP, or any Docker host.
 - **Production-ready** — Real healthchecks, auto-recovery when VPN reconnects, backup script. Not just "it runs."
 - **Battle-tested** — Edge cases found and fixed across multiple NAS setups. More resilient than most.
 - **Best practices built in** — Downloads appear instantly without using extra disk space, files are named consistently, and download settings are tuned for security and performance. Based on [TRaSH Guides](https://trash-guides.info/).
-- **Everything you need** — Jellyfin, Sonarr, Radarr, Prowlarr, Bazarr, Seerr, qBittorrent, SABnzbd, Pi-hole, Cloudflare Tunnel. Modular — skip what you don't need, add what you do (e.g. Lidarr).
+- **Everything you need** — Jellyfin, Sonarr, Radarr, Prowlarr, Bazarr, Seerr, qBittorrent, SABnzbd, Pi-hole, Cloudflare Tunnel, Tailscale. Modular — skip what you don't need, add what you do (e.g. Lidarr).
 - **Step-by-step guide** — Not just a docker-compose file in a repo.
 - **Flexible** — Supports 30+ VPN providers. Plex users can swap or add Jellyfin (see [Plex guide](docs/SETUP.md#plex)).
 - **Privacy by default** — All downloads route through your VPN.
@@ -49,6 +49,7 @@ Watch: Jellyfin — locally or remotely via Traefik
 | **Core** | `192.168.1.50:8096` | Just the stack |
 | **+ local DNS** | `jellyfin.lan` | Configure Pi-hole + add Traefik |
 | **+ remote access** | `jellyfin.yourdomain.com` | Add Cloudflare Tunnel |
+| **+ tailscale** | `sonarr.lan` from anywhere | Add Tailscale (free, works behind CGNAT) |
 
 ## Get Started
 
@@ -59,7 +60,8 @@ Watch: Jellyfin — locally or remotely via Traefik
 | [Architecture](docs/ARCHITECTURE.md) | Understand how the stack fits together |
 | [App Configuration](docs/APP-CONFIG.md) | Configure each app — [script-assisted](docs/APP-CONFIG-QUICK.md) or [manual](docs/APP-CONFIG.md) |
 | [Local DNS](docs/LOCAL-DNS.md) | Set up `.lan` domains with Pi-hole + Traefik |
-| [Remote Access](docs/REMOTE-ACCESS.md) | Access from anywhere via Cloudflare Tunnel |
+| [Remote Access](docs/REMOTE-ACCESS.md) | Access Jellyfin/Seerr from anywhere via Cloudflare Tunnel |
+| [Tailscale](docs/TAILSCALE.md) | Reach the whole LAN (admin UIs, `*.lan`) from anywhere via Tailscale |
 | [Utilities](docs/UTILITIES.md) | Monitoring, auto-recovery, disk usage tools |
 | [Quick Reference](docs/REFERENCE.md) | Cheat sheet: all URLs, ports, IPs, common commands |
 | [Upgrading](docs/UPGRADING.md) | How to pull updates and redeploy |

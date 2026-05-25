@@ -47,6 +47,14 @@ docker compose -f docker-compose.utilities.yml up -d
 
 ```
 
+### Tailscale (independent)
+
+```bash
+# Start / update Tailscale (uses its own compose project name, so this won't disturb the arr-stack)
+docker compose -f docker-compose.tailscale.yml up -d
+docker compose -f docker-compose.tailscale.yml pull
+```
+
 ### All Stacks
 
 ```bash
@@ -55,6 +63,7 @@ docker compose \
   -f docker-compose.arr-stack.yml \
   -f docker-compose.traefik.yml \
   -f docker-compose.cloudflared.yml \
+  -f docker-compose.tailscale.yml \
   -f docker-compose.utilities.yml \
   up -d
 
@@ -63,6 +72,7 @@ docker compose \
   -f docker-compose.arr-stack.yml \
   -f docker-compose.traefik.yml \
   -f docker-compose.cloudflared.yml \
+  -f docker-compose.tailscale.yml \
   -f docker-compose.utilities.yml \
   pull
 ```

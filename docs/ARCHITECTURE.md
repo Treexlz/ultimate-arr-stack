@@ -90,6 +90,7 @@ arr-stack network (172.20.0.0/24)
 │ 172.20.0.5   │ Pi-hole      │ DNS server                     │ Core             │
 │ 172.20.0.2   │ Traefik      │ Reverse proxy                  │ + local DNS      │
 │ 172.20.0.12  │ Cloudflared  │ Tunnel to Cloudflare           │ + remote access  │
+│ host-network │ Tailscale    │ Mesh VPN subnet router         │ + tailscale      │
 │ 172.20.0.13  │ Uptime Kuma  │ Monitoring                     │ Optional         │
 │ 172.20.0.14  │ duc          │ Disk usage                     │ Optional         │
 │ 172.20.0.15  │ Beszel       │ System monitoring              │ Optional         │
@@ -132,6 +133,19 @@ arr-stack network (172.20.0.0/24)
 │                                                                          │
 │  Phone → Cloudflare → Tunnel → Traefik → Service                        │
 └─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ + Tailscale (independent / complementary)
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          + TAILSCALE                                     │
+│             Private full-LAN access from anywhere                        │
+│  ┌──────────────┐  ┌────────────────┐  ┌──────────────────────┐         │
+│  │ sonarr.lan   │  │ pihole.lan     │  │ homeassistant.lan    │  ...    │
+│  └──────────────┘  └────────────────┘  └──────────────────────┘         │
+│                                                                          │
+│  Phone → Tailscale → LAN (10.10.0.0/24) → Service                       │
+│  (No public exposure; only your tailnet devices can reach the LAN)      │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Container Security
@@ -159,7 +173,7 @@ Additional requirements:
 
 **Static IPs:** Prevents "container not found" errors after restarts. Services always know where to find each other.
 
-**Separate compose files:** Deploy only what you need. Core users don't need Traefik or Cloudflared.
+**Separate compose files:** Deploy only what you need. Core users don't need Traefik, Cloudflared, or Tailscale.
 
 **VPN for downloads only:** Protects privacy where it matters, doesn't slow down streaming.
 

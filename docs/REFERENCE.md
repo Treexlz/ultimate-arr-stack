@@ -62,6 +62,12 @@
 |---------|-----|------|-------|
 | Cloudflared | 172.20.0.12 | — | Tunnel (no ports exposed) |
 
+**+ tailscale** (tailscale.yml):
+
+| Service | IP | Port | Notes |
+|---------|-----|------|-------|
+| Tailscale | host-network | — | Subnet router, advertises `LAN_SUBNET` to tailnet |
+
 **Optional** (utilities.yml):
 
 | Service | IP | Port | Notes |
@@ -174,6 +180,12 @@ Services start in dependency order (handled automatically by `depends_on`):
 | Service | Description |
 |---------|-------------|
 | Cloudflared | Tunnel to Cloudflare for external access |
+
+### `docker-compose.tailscale.yml` (+ tailscale)
+
+| Service | Description |
+|---------|-------------|
+| Tailscale | Mesh VPN subnet router — private full-LAN access from anywhere |
 
 ### `docker-compose.utilities.yml` (Optional)
 

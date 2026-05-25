@@ -14,6 +14,7 @@ Everything you need to go from zero to streaming. Works on any NAS or Docker hos
 - [Step 5: Check It Works](#step-5-check-it-works)
 - [+ local DNS (.lan domains)](#-local-dns-lan-domains--optional)
 - [+ remote access](#-remote-access--optional)
+- [+ tailscale](#-tailscale--optional)
 - [Backup](#backup)
 - [Optional Utilities](#optional-utilities)
 
@@ -28,8 +29,9 @@ Decide how you'll access your media stack:
 | **Core** | `192.168.1.50:8096` | Just `.env` + VPN credentials | Testing, single user |
 | **+ local DNS** | `jellyfin.lan` | Configure Pi-hole + add Traefik | Home/family use |
 | **+ remote access** | `jellyfin.yourdomain.com` | Add Cloudflare Tunnel | Watch/request from anywhere |
+| **+ tailscale** | `sonarr.lan` from anywhere | Add Tailscale (free) | Admin UIs + `.lan` from anywhere |
 
-**You can start simple and add features later.** The guide has checkpoints so you can stop at any level.
+**You can start simple and add features later.** The guide has checkpoints so you can stop at any level. `+ remote access` and `+ tailscale` are complementary — Cloudflared exposes public-facing media services, Tailscale gives you private access to the whole LAN.
 
 ---
 
@@ -63,6 +65,9 @@ Decide how you'll access your media stack:
 - **Domain name** (~$10/year) - [Cloudflare Registrar](https://www.cloudflare.com/products/registrar/) recommended
 - **Cloudflare account** (free tier)
 
+**For + tailscale:**
+- **Tailscale account** (free tier — up to 100 devices, personal use)
+
 ---
 
 ## Stack Overview
@@ -83,6 +88,7 @@ Decide how you'll access your media stack:
 | **Pi-hole** | DNS server - blocks ads, provides Docker DNS | Core |
 | **Traefik** | Reverse proxy - enables `.lan` domains | + local DNS |
 | **Cloudflared** | Tunnel to Cloudflare - secure remote access without port forwarding | + remote access |
+| **Tailscale** | Mesh VPN - private full-LAN access from anywhere, traverses CGNAT | + tailscale |
 
 ### Files You Need To Edit
 
@@ -95,6 +101,9 @@ Decide how you'll access your media stack:
 **+ remote access:**
 - `.env` - Add domain, Traefik dashboard auth
 - `traefik/dynamic/vpn-services.yml` - Replace `yourdomain.com`
+
+**+ tailscale:**
+- `.env` - Optional (`TS_HOSTNAME`, `TS_AUTHKEY`, `TS_EXTRA_ROUTES` all have sensible defaults). Defaults to advertising `LAN_SUBNET`
 
 **Files you DON'T edit:**
 - `docker-compose.*.yml` - Work as-is, configured via `.env`
@@ -109,6 +118,7 @@ Decide how you'll access your media stack:
 | `docker-compose.arr-stack.yml` | Core media stack (Jellyfin, *arr apps, downloads, VPN) | Core |
 | `docker-compose.traefik.yml` | Reverse proxy for .lan domains and external access | + local DNS |
 | `docker-compose.cloudflared.yml` | Secure tunnel to Cloudflare (no port forwarding) | + remote access |
+| `docker-compose.tailscale.yml` | Mesh VPN subnet router for private LAN access | + tailscale |
 | `docker-compose.utilities.yml` | Monitoring, auto-recovery, disk usage | Utilities (optional) |
 
 See [Quick Reference](REFERENCE.md) for full service lists, .lan URLs, and network details.
@@ -542,6 +552,14 @@ Access services by name (`http://sonarr.lan`) instead of port numbers. Requires 
 Watch and request media from anywhere via `jellyfin.yourdomain.com`. Requires a domain + Cloudflare Tunnel.
 
 **[→ Remote access setup guide](REMOTE-ACCESS.md)**
+
+---
+
+## + tailscale — Optional
+
+Reach the whole LAN (admin UIs, `*.lan` domains, Home Assistant, the NAS itself) from anywhere — including hotel WiFi and CGNAT networks. Free Tailscale account, no domain or port-forwarding needed. Complementary to `+ remote access`, not a replacement.
+
+**[→ Tailscale setup guide](TAILSCALE.md)**
 
 ---
 
