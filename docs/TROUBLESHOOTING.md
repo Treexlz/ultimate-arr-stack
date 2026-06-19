@@ -73,6 +73,47 @@ Surfshark's WireGuard key is account-wide, so changing only `VPN_COUNTRIES` is e
 
 > **Diagnostic gotcha — Prowlarr masks API keys.** `GET /api/v1/indexer/<id>` returns indexer secrets as a short placeholder, **not** the real key. If you curl an indexer's newznab API directly using that masked value you'll get `<error code="102" description="Empty API Key"/>` and zero results — which looks like a dead indexer but isn't. Prowlarr's own searches use the real key (32 chars for NZBgeek). Read the real value from `prowlarr.db` (`Indexers.Settings` JSON) before testing by hand, or just trust Prowlarr's search rather than a manual curl.
 
+## Indexers: All Slow / Intermittently Failing (Throttled VPN Exit Server)
+
+**Symptom:** Searches feel broken but nothing is hard-down. An interactive search or `GET /api/v1/search` takes **~50s** instead of a second or two. Per-indexer tests are slow (10s+) or return **HTTP 500**, and the slowness hits *everything* riding the tunnel at once — including reliable paid indexers like NZBgeek that should never be slow. Crucially, this is **not** a 451/legal block, and `GET /api/v1/indexerstatus` may show **0 failures** because nothing has crossed the 6-hour auto-disable threshold yet. The web UIs of VPN-protected services (Prowlarr/qBittorrent) also feel laggy and jittery (response times jumping 10ms → 4s).
+
+This can masquerade as unrelated problems: a `*.lan` service like `seerr.lan` "feeling slow" is **not** caused by this (that path is local and never touches the VPN) — but *triggering a search/request inside Jellyseerr* is, because that call fans out seerr → Sonarr/Radarr → Prowlarr → tunnel.
+
+**Cause:** The specific WireGuard server gluetun happened to connect to is congested or throttled (or partially degraded). The country is fine — it's just a bad server, and gluetun will sit on it indefinitely. The exit IP resolves and basic reachability works (so it's not a tunnel-down or auth failure), it's just slow. Distinct from the geo-block case above (HTTP 451), which needs a *country* change.
+
+**Diagnose:**
+```bash
+PK=<prowlarr-apikey>
+# Aggregate search time — the headline symptom (healthy = ~1-2s, throttled = ~50s)
+time curl -s "http://localhost:9696/api/v1/search?query=ubuntu&type=search&limit=5" -H "X-Api-Key: $PK" >/dev/null
+
+# Per-indexer latency — throttled = several seconds each and/or HTTP 500
+for id in $(curl -s "http://localhost:9696/api/v1/indexer" -H "X-Api-Key: $PK" | python3 -c 'import sys,json;[print(i["id"]) for i in json.load(sys.stdin)]'); do
+  cfg=$(curl -s "http://localhost:9696/api/v1/indexer/$id" -H "X-Api-Key: $PK")
+  code=$(printf '%s' "$cfg" | curl -s -o /dev/null -w '%{http_code} %{time_total}s' -X POST "http://localhost:9696/api/v1/indexer/test" -H "X-Api-Key: $PK" -H "Content-Type: application/json" --data-binary @-)
+  echo "indexer $id: $code"
+done
+
+# Confirm the exit IP (note it, so you can verify it changes after the restart)
+docker exec gluetun wget -qO- https://ipinfo.io/ip
+```
+
+**Fix — bounce gluetun onto a fresh server (same country, no `.env` change):**
+```bash
+cd /volume1/docker/arr-stack
+docker restart gluetun                       # reconnects to a *different* server with the same key
+# Wait for healthy (~50s), confirm the exit IP changed:
+docker inspect -f '{{.State.Health.Status}}' gluetun
+docker exec gluetun wget -qO- https://ipinfo.io/ip
+
+# REQUIRED: restart every container sharing gluetun's network namespace.
+# Restarting gluetun alone severs their networking — they go dead (empty/000 responses)
+# until bounced too.
+docker restart prowlarr qbittorrent          # add sabnzbd/sonarr/radarr/bazarr if they share the netns
+```
+
+Re-run the aggregate search to confirm it's back to ~1-2s. (Observed 2026-06-19: a throttled NL server gave a 54s search with two indexers at HTTP 500; `docker restart gluetun` + bouncing the dependents dropped it to **1.2s**, no config change.) If the new server is *also* slow, restart gluetun again to roll the dice on another. Only switch `VPN_COUNTRIES` (the section above) if you actually see HTTP 451 — that's a different problem.
+
 ## SABnzbd: Stuck Unpack Loop
 
 **Symptom:** Radarr shows "Downloading" at 100% with 0 B file size. SABnzbd UI is unresponsive or Save fails. Logs show `Unpacked files []` repeatedly.
