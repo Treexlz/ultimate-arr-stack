@@ -23,18 +23,18 @@ Therapy-stack local repo: `/Users/adamknowles/dev/n8n Therapybot/Git repo/`
 
 ## Deploying to the NAS
 
-**The rule (no exceptions): every code change — even a trivial patch image bump — MUST be tested on the NAS and confirmed working BEFORE it is committed or pushed.** There is no "trivial" fast-path that skips NAS testing.
+**The rule (no exceptions): every code change — even a trivial patch image bump — MUST be tested on the NAS and confirmed working BEFORE it reaches `main`.** There is no "trivial" fast-path that skips NAS testing.
 
-Order, always:
+This is delivered **branch-first** (resolves the old "test before commit" vs "deploy via git only" tension — confirmed by the user 2026-06-19):
 
-1. Make the change locally.
-2. Apply it on the NAS and recreate the affected service(s).
+1. Make the change locally on a **feature branch**, commit, and push the branch.
+2. On the NAS, `git fetch && git checkout <branch>` and recreate the affected service(s) via compose (never SCP, never ad-hoc `docker run`).
 3. **Verify on the NAS:** container healthy, API/UI responds, migration clean, and `npm run test:e2e` where relevant.
-4. Only once it's confirmed working on the NAS → commit, then push. (The committed change matches what's already running on the NAS.)
-5. If it fails verification → fix or discard. Nothing untested ever reaches git.
+4. Only once it's confirmed working → **merge the branch to `main`** and push, then `git checkout main && git pull` on the NAS to sync. Nothing untested ever reaches `main`.
+5. If it fails verification → fix on the branch and re-verify, or discard the branch. The NAS goes back to `main` with `git checkout main`.
 
 Back up a service's config volume before any version bump with a DB migration (`docker run --rm -v <vol>:/src:ro -v <dir>:/bak alpine tar czf /bak/<svc>-config-backup-<stamp>.tgz -C /src .`). Never `docker stop` + ad-hoc `docker run` against a live container's static IP to test — apply the change through compose so the test reflects the real config.
 
 ## E2E Tests
 
-Run `npm run test:e2e` after any change to Docker Compose files, service config, networks, or ports. All 13 tests must pass. They screenshot every service UI and verify API responses.
+Run `npm run test:e2e` after any change to Docker Compose files, service config, networks, or ports. All 14 tests must pass. They screenshot every service UI and verify API responses.

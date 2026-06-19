@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.21] - 2026-06-19
+
+### Fixed
+- **`gluetun-recover` now revives *running* zombies, not just `Exited` containers**: when gluetun restarts to rebuild its tunnel, its shared network namespace is destroyed and dependents (`network_mode: service:gluetun`) lose networking. Some are SIGKILLed and stay `Exited` (already handled); others keep **running** on the dead namespace — reachable on `localhost`, invisible to the rest of the stack, and still showing **Up (healthy)** because their healthcheck is localhost-based. The old exited-only `recover()` skipped these, which is how Jellyseerr lost Radarr/Sonarr (requests stuck on *Failed*) and Prowlarr lost FlareSolverr while every container looked healthy. `recover()` now also restarts any `gluetun.dependent=true` container whose `StartedAt` predates gluetun's current start (whole-second RFC3339 comparison, busybox-safe). Verified end-to-end on the NAS: a `docker restart gluetun` left all 6 dependents as running zombies, and the watcher auto-restarted every one once gluetun went healthy — no manual intervention.
+
+### Documentation
+- **TROUBLESHOOTING.md "Apps Unreachable After a VPN Reconnect (Stale Network Namespace)"**: documents the zombie symptom (Seerr "Unable to connect to Radarr/Sonarr", Failed requests, everything showing Up), why localhost healthchecks mask it, the built-in auto-recovery, and the manual StartedAt check/fix
+
+## [1.7.20] - 2026-06-10
+
+### Changed
+- **Jellyseerr** v3.2.0 → v3.3.0
+
+## [1.7.19] - 2026-06-09
+
+### Changed
+- **Cloudflared** 2026.5.2 → 2026.6.0
+
 ## [1.7.18] - 2026-06-06
 
 ### Changed

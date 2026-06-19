@@ -114,6 +114,33 @@ docker restart prowlarr qbittorrent          # add sabnzbd/sonarr/radarr/bazarr 
 
 Re-run the aggregate search to confirm it's back to ~1-2s. (Observed 2026-06-19: a throttled NL server gave a 54s search with two indexers at HTTP 500; `docker restart gluetun` + bouncing the dependents dropped it to **1.2s**, no config change.) If the new server is *also* slow, restart gluetun again to roll the dice on another. Only switch `VPN_COUNTRIES` (the section above) if you actually see HTTP 451 — that's a different problem.
 
+## Apps Unreachable After a VPN Reconnect (Stale Network Namespace)
+
+**Symptom:** After gluetun restarts (VPN reconnect, server switch, or container recreate), some VPN-bound apps go unreachable from the rest of the stack even though `docker ps` shows them **Up (healthy)**. Classic tells: Jellyseerr banner *"Unable to connect to Radarr/Sonarr — some information may be unavailable"* and new requests stuck on **Failed**; or Prowlarr reporting FlareSolverr down. The affected container answers fine on its own `localhost` but refuses connections from anything else.
+
+**Cause:** These services use `network_mode: "service:gluetun"`, so they share gluetun's network namespace. When gluetun restarts, that namespace is destroyed. Two things can happen to each dependent:
+- It is SIGKILLed and stays **Exited** (docker can't rejoin a vanished namespace), or
+- It keeps **running as a zombie** on the dead namespace — alive on `127.0.0.1`, invisible to the network, and its localhost healthcheck still passes so it shows green.
+
+The second case is the nasty one: everything *looks* fine. `deunhealth` won't touch it (it's not unhealthy) and an exited-only watcher misses it.
+
+**Auto-recovery (built in):** The `gluetun-recover` watcher handles both cases. On every gluetun `health_status: healthy` event it restarts any `gluetun.dependent=true` container that is Exited **or** whose `StartedAt` predates gluetun's current start (a stale-namespace zombie). No action needed — give it ~30-60s after gluetun goes healthy.
+
+**Verify / manual fix if ever needed:**
+```bash
+# Any dependent started BEFORE gluetun is a stale zombie:
+g=$(docker inspect -f '{{.State.StartedAt}}' gluetun | cut -c1-19); echo "gluetun: $g"
+for c in qbittorrent sabnzbd sonarr prowlarr radarr flaresolverr; do
+  echo "  $c: $(docker inspect -f '{{.State.StartedAt}}' $c | cut -c1-19)"
+done
+# Confirm reachability through the shared namespace:
+docker exec seerr   wget -qO- http://gluetun:8989/ping   # sonarr -> {"status":"OK"}
+docker exec prowlarr wget -qO- http://127.0.0.1:8191/    # flaresolverr -> "ready" (use 127.0.0.1, it's IPv4-only)
+
+# Manual recovery (gluetun-recover does this automatically):
+docker restart sonarr radarr   # or whichever started before gluetun
+```
+
 ## SABnzbd: Stuck Unpack Loop
 
 **Symptom:** Radarr shows "Downloading" at 100% with 0 B file size. SABnzbd UI is unresponsive or Save fails. Logs show `Unpacked files []` repeatedly.
