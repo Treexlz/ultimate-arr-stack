@@ -301,7 +301,7 @@ services:
     ports:
       - "8096:8096"     # Web UI
       - "7359:7359/udp" # Client discovery (auto-detect on LAN)
-      - "1900:1900/udp" # DLNA
+      #- "1900:1900/udp" # DLNA
     environment:
       - TZ=${TZ}
     # Hardware transcoding (Intel Quick Sync) - remove these 4 lines if no Intel GPU
